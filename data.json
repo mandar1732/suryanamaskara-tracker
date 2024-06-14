@@ -1,0 +1,16 @@
+{
+    "users": [
+        {
+            "name": "Mandar",
+            "count": 1
+        },
+        {
+            "name": "Abhishek",
+            "count": 12
+        },
+        {
+            "name": "ruturaj",
+            "count": 11
+        }
+    ]
+}
