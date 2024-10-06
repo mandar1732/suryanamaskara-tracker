@@ -1,51 +1,45 @@
-// Ensure DOM is loaded before running the script
+import { getDatabase, ref, set, get, child, update } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
+
 document.addEventListener('DOMContentLoaded', () => {
     const entryForm = document.getElementById('entryForm');
     const leaderboard = document.getElementById('leaderboard');
+    const database = getDatabase(); // Initialize the database
 
-    // Reference to the leaderboard in the Firebase database
-    const dbRef = firebase.database().ref('leaderboard');
-
-    // Function to render the leaderboard
-    const renderLeaderboard = (data) => {
+    const renderLeaderboard = () => {
         leaderboard.innerHTML = '';
-        const sortedData = Object.values(data).sort((a, b) => b.count - a.count); // Sort by count descending
-        sortedData.forEach(user => {
-            const row = document.createElement('tr');
-            const nameCell = document.createElement('td');
-            nameCell.textContent = user.name;
-            const countCell = document.createElement('td');
-            countCell.textContent = user.count;
-            row.appendChild(nameCell);
-            row.appendChild(countCell);
-            leaderboard.appendChild(row);
+        // Fetch data from Firebase and render it here
+        // Assuming your data structure is set up correctly in Firebase
+        const leaderboardRef = ref(database, 'leaderboard'); // Adjust this based on your data structure
+        get(leaderboardRef).then((snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                // Sort and render data...
+            } else {
+                console.log('No data available');
+            }
+        }).catch((error) => {
+            console.error(error);
         });
     };
 
-    // Fetch the leaderboard data from Firebase
-    dbRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            renderLeaderboard(data);
-        }
-    });
-
-    // Handle form submission
     entryForm.addEventListener('submit', (event) => {
         event.preventDefault();
         const name = entryForm.name.value.trim();
         const count = parseInt(entryForm.count.value.trim());
 
         if (name && count) {
-            dbRef.child(name).once('value', (snapshot) => {
-                const existingUser = snapshot.val();
-                const updatedCount = existingUser ? existingUser.count + count : count;
-                dbRef.child(name).set({
-                    name,
-                    count: updatedCount
-                });
+            const userRef = ref(database, 'leaderboard/' + name);
+            set(userRef, {
+                name: name,
+                count: count
+            }).then(() => {
+                renderLeaderboard();
+                entryForm.reset();
+            }).catch((error) => {
+                console.error('Error writing to database', error);
             });
-            entryForm.reset();
         }
     });
+
+    renderLeaderboard();
 });
