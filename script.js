@@ -1,12 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     const entryForm = document.getElementById('entryForm');
     const leaderboard = document.getElementById('leaderboard');
-    let data = JSON.parse(localStorage.getItem('suryanamaskaraData')) || [];
 
-    const renderLeaderboard = () => {
+    // Reference to the leaderboard in the Firebase database
+    const dbRef = firebase.database().ref('leaderboard');
+
+    // Function to render the leaderboard
+    const renderLeaderboard = (data) => {
         leaderboard.innerHTML = '';
-        data.sort((a, b) => b.count - a.count);
-        data.forEach(user => {
+        const sortedData = Object.values(data).sort((a, b) => b.count - a.count); // Sort by count descending
+        sortedData.forEach(user => {
             const row = document.createElement('tr');
             const nameCell = document.createElement('td');
             nameCell.textContent = user.name;
@@ -18,23 +21,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // Fetch the leaderboard data from Firebase
+    dbRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            renderLeaderboard(data);
+        }
+    });
+
+    // Handle form submission
     entryForm.addEventListener('submit', (event) => {
         event.preventDefault();
         const name = entryForm.name.value.trim();
         const count = parseInt(entryForm.count.value.trim());
 
         if (name && count) {
-            const existingUser = data.find(user => user.name === name);
-            if (existingUser) {
-                existingUser.count += count;
-            } else {
-                data.push({ name, count });
-            }
-            localStorage.setItem('suryanamaskaraData', JSON.stringify(data));
-            renderLeaderboard();
+            dbRef.child(name).once('value', (snapshot) => {
+                const existingUser = snapshot.val();
+                const updatedCount = existingUser ? existingUser.count + count : count;
+                dbRef.child(name).set({
+                    name,
+                    count: updatedCount
+                });
+            });
             entryForm.reset();
         }
     });
-
-    renderLeaderboard();
 });
