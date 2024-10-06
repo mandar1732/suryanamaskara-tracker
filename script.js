@@ -1,3 +1,4 @@
+// Ensure DOM is loaded before running the script
 document.addEventListener('DOMContentLoaded', () => {
     const entryForm = document.getElementById('entryForm');
     const leaderboard = document.getElementById('leaderboard');
