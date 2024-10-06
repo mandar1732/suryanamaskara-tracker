@@ -1,4 +1,4 @@
-import { getDatabase, ref, set, get, child, update } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
+import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-database.js";
 
 document.addEventListener('DOMContentLoaded', () => {
     const entryForm = document.getElementById('entryForm');
@@ -6,14 +6,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const database = getDatabase(); // Initialize the database
 
     const renderLeaderboard = () => {
-        leaderboard.innerHTML = '';
-        // Fetch data from Firebase and render it here
-        // Assuming your data structure is set up correctly in Firebase
-        const leaderboardRef = ref(database, 'leaderboard'); // Adjust this based on your data structure
+        leaderboard.innerHTML = ''; // Clear current leaderboard
+        const leaderboardRef = ref(database, 'leaderboard'); // Reference to the leaderboard
+
         get(leaderboardRef).then((snapshot) => {
             if (snapshot.exists()) {
                 const data = snapshot.val();
-                // Sort and render data...
+                const entries = Object.values(data).sort((a, b) => b.count - a.count); // Sort by count
+
+                // Append entries to leaderboard
+                entries.forEach(user => {
+                    const row = document.createElement('tr');
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = user.name;
+                    const countCell = document.createElement('td');
+                    countCell.textContent = user.count;
+                    row.appendChild(nameCell);
+                    row.appendChild(countCell);
+                    leaderboard.appendChild(row);
+                });
             } else {
                 console.log('No data available');
             }
@@ -29,17 +40,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (name && count) {
             const userRef = ref(database, 'leaderboard/' + name);
-            set(userRef, {
-                name: name,
-                count: count
-            }).then(() => {
-                renderLeaderboard();
-                entryForm.reset();
+            get(userRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    // Update existing user count
+                    const existingCount = snapshot.val().count;
+                    set(userRef, {
+                        name: name,
+                        count: existingCount + count
+                    }).then(() => {
+                        renderLeaderboard();
+                        entryForm.reset();
+                    }).catch((error) => {
+                        console.error('Error updating to database', error);
+                    });
+                } else {
+                    // Create new user entry
+                    set(userRef, {
+                        name: name,
+                        count: count
+                    }).then(() => {
+                        renderLeaderboard();
+                        entryForm.reset();
+                    }).catch((error) => {
+                        console.error('Error writing to database', error);
+                    });
+                }
             }).catch((error) => {
-                console.error('Error writing to database', error);
+                console.error('Error fetching user data', error);
             });
         }
     });
 
-    renderLeaderboard();
+    renderLeaderboard(); // Initial render
 });
